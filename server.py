@@ -17,8 +17,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def worker(filename, uid):
     print('start process')
 
-    process = subprocess.Popen([os.path.join(app.config['UPLOAD_FOLDER'], 'hpcrunme'), os.path.join(
-        app.config['UPLOAD_FOLDER'], filename, 'linux_run.sh')], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(['qsub', os.path.join(app.config['UPLOAD_FOLDER'], filename, 'hpcrunme')], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     with sqlite3.connect('database.db') as con:
         cursor = con.cursor()
@@ -70,14 +69,32 @@ def execute():
 
     linux_run = os.path.join(
         app.config['UPLOAD_FOLDER'], file.filename.split('.')[0], 'linux_run.sh')
+    hpcrunme = os.path.join(app.config['UPLOAD_FOLDER'], file.filename.split('.')[0], 'hpcrunme')
+
     with open(linux_run, mode="w") as f:
         f.write(
-            f"""#!/usr/bin/sh
-            export LD_LIBRARY_PATH=/home/vaibhav/MIST/software/fftw/fftw3 
-            /home/vaibhav/MIST/software/MIST/Default/mist -f {"".join([os.path.join('simulation', file.filename.split('.')[0], path) for path in paths])}""")
+            f"""#!/bin/sh
+            export LD_LIBRARY_PATH=/apps/libs/fftw/3.3.10/lib 
+            /home/subham/varad/software/MIST/Default/mist -f {"".join([os.path.join('simulation', file.filename.split('.')[0], path) for path in paths])}""")
+    
+    with open(hpcrunme, mode="w") as f:
+        f.write(
+            f"""#!/bin/bash
+                #PBS -N mini-1
+                #PBS -l nodes=1:ppn=1,walltime=20:00:00
+                #PBS -j oe
+                cd $PBS_O_WORKDIR
+                export I_MPI_FABRICS=shm:dapl
+                #export I_MPI_MPD_TMPDIR=/scratch/varaddaoo20
 
-    st = os.stat(linux_run)
-    os.chmod(linux_run, st.st_mode | 0o0111)
+
+                module load compiler/openmpi-4.1.4
+                module load fftw-3.3.10
+                mpirun -machinefile $PBS_NODEFILE -np 1 {os.path.join(app.config["UPLOAD_FOLDER"], file.filename.split(".")[0], 'linux_run.sh')} > {os.path.join(app.config["UPLOAD_FOLDER"], file.filename.split(".")[0], 'out')} """
+        )
+        
+    os.chmod(linux_run, os.stat(linux_run).st_mode | 0o0111)
+    os.chmod(hpcrunme, os.stat(hpcrunme).st_mode | 0o0111)
 
     worker_process = multiprocessing.Process(
         target=worker, args=(file.filename.split('.')[0], uid))
@@ -104,27 +121,29 @@ def get_jobs():
                 stats[res[0]] = ({'uid': res[0], 'filename': res[1], 'submitted_at': res[2],
                                  'pid': res[4], 'status': res[5], 'processes': [res[3]]})
 
-    return list(stats.values()), 200
+    return jsonify(list(stats.values())), 200
 
 
 @app.route('/getresult/<uid>', methods=['GET'])
 def get_result(uid):
-    result_folder = os.path.join(app.config['UPLOAD_FOLDER'], uid)
-    result_zip_file = os.path.join(result_folder, 'results.zip')
+    folder = os.path.join(app.config['UPLOAD_FOLDER'], uid)
+    result_zip = os.path.join(folder, 'results.zip')
 
-    if not os.path.exists(result_zip_file):
-        with zipfile.ZipFile(result_zip_file, 'w') as zip_ref:
-            for subdir, _, files in os.walk(result_folder):
-                for file in files:
-                    file_path = os.path.join(subdir, file)
-                    arcname = os.path.relpath(file_path, result_folder)
-                    zip_ref.write(file_path, arcname=arcname)
+    if not os.path.exists(result_zip):
+        with zipfile.ZipFile(result_zip, 'w') as zip_ref:
+            for _, subdirs, _ in os.walk(folder):
+                for subdir in subdirs:
+                    for file in os.listdir(os.path.join(folder, subdir)):
+                        if "result" in file or "dump" in file: 
+                            file_path = os.path.join(folder, subdir, file)
+                            arcname = os.path.relpath(file_path, folder)
+                            zip_ref.write(file_path, arcname)
 
     try:
-        return send_file(result_zip_file, as_attachment=True), 200
+        return send_file(result_zip, as_attachment=True), 200
     except Exception as e:
         return str(e), 500
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=5000)

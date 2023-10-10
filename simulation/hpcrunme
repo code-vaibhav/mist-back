@@ -1,3 +1,0 @@
-#!/usr/bin/bash
-
-/home/vaibhav/MIST/software/openmpi/openmpi/bin/mpirun -np 1 $1
