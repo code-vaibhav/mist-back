@@ -10,13 +10,9 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import shutil
-from pymongo import MongoClient
 
 app = Flask(__name__)
 CORS(app, origins=['http://localhost:3000', "https://mist-front-one.vercel.app"], supports_credentials=True)
-client = MongoClient('mongodb+srv://vaibhavgoyal2506:OWBDv57eHgP1hybg@cluster0.oupzcx4.mongodb.net/?retryWrites=true&w=majority')
-db = client['projects']  # Replace 'your_database' with your database name
-jobs = db['jobs']  # Replace 'your_collection' with your collection name
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'simulation')
 
