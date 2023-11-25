@@ -13,7 +13,8 @@ jobs_table = """ CREATE TABLE jobs (
             filename CHAR(50) NOT NULL,
             submitted_at INT NOT NULL,
             status CHAR(10) DEFAULT NULL,
-            pid INT DEFAULT NULL
+            pid CHAR(15) DEFAULT NULL
+            completed_at INT DEFAULT NULL
         ); """
 process_table = """ CREATE TABLE processes (
             uid VARCHAR(255) NOT NULL,

@@ -1,0 +1,33 @@
+# CIF -  368981
+
+unit real
+
+ensemble GCMC
+
+dimension 3
+
+box 1 triclinic
+
+datafile
+1 fractional CIFbdata_368981.mistdata
+
+potfile
+1 ethane.pot
+2 ethylene.pot
+3 CIFbdata_368981.pot
+
+condition 298 -11.3105 -11.3105
+
+move 4
+add_remove 0.6
+displace 0.15
+rotate 0.15
+swap 0.1
+
+equil_run    2000
+prod_run    5000
+sweep 1000
+
+write_data xyz 1000 dump.xyz
+write_prop 100
+prop 10 nmolecule energy

@@ -1,0 +1,12 @@
+#!/bin/bash
+                #PBS -N mini-1
+                #PBS -l nodes=1:ppn=1,walltime=20:00:00
+                #PBS -j oe
+                cd $PBS_O_WORKDIR
+                export I_MPI_FABRICS=shm:dapl
+                #export I_MPI_MPD_TMPDIR=/scratch/varaddaoo20
+
+
+                module load compiler/openmpi-4.1.4
+                module load fftw-3.3.10
+                mpirun -machinefile $PBS_NODEFILE -np 1 /home/subham/varad/vaibhav_ugp/mist-back/simulation/ab5be3954b5c430f85d467cdcaf12c3a/linux_run.sh > /home/subham/varad/vaibhav_ugp/mist-back/simulation/ab5be3954b5c430f85d467cdcaf12c3a/out 
