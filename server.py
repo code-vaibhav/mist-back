@@ -10,6 +10,11 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import shutil
+import ssl
+
+context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+context.load_cert_chain('fullchain.pem', 'privkey.pem')
+
 
 app = Flask(__name__)
 CORS(app, origins=['http://localhost:3000', "https://mist-front-one.vercel.app"], supports_credentials=True)
@@ -278,5 +283,5 @@ def delete_job(uid):
 
 
 if __name__ == "__main__":
-    app.run(ssl_context=('fullchain.pem', 'privkey.pem'), host='0.0.0.0', port=5001)
+    app.run(ssl_context=context, host='0.0.0.0', port=5001)
 
